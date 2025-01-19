@@ -28,7 +28,7 @@
                             <local:MyComboBoxItem Content="尽量使用官方源（保证版本最新，但加载缓慢）" />
                         </local:MyComboBox>
                         <TextBlock Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Left" Text="最大线程数" Margin="0,0,25,0" />
-                        <local:MySlider x:Name="SliderDownloadThread" Grid.Row="2" Tag="ToolDownloadThread" MaxValue="255" Value="63" Grid.Column="1"
+                        <local:MySlider x:Name="SliderDownloadThread" Grid.Row="2" Tag="ToolDownloadThread" MaxValue="1023" Value="63" Grid.Column="1"
                                         ToolTip="线程数越多，限速的文件下载越快，但过高的线程数会造成下载时非常严重的卡顿。&#xa;一般而言，64 线程已可以保证足够的下载速度。" />
                         <TextBlock VerticalAlignment="Center" Grid.Row="3" HorizontalAlignment="Left" Text="速度限制" Margin="0,0,25,0" />
                         <local:MySlider x:Name="SliderDownloadSpeed" Grid.Row="3" Tag="ToolDownloadSpeed" MaxValue="42" Value="42" Grid.Column="1"
