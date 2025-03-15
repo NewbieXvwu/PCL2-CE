@@ -55,12 +55,16 @@
         Dim Loaders As New List(Of LoaderBase)
 
 #Region "下载支持库文件"
-        Dim LoadersLib As New List(Of LoaderBase) From {
-            New LoaderTask(Of String, List(Of NetFile))("分析缺失支持库文件", Sub(Task As LoaderTask(Of String, List(Of NetFile))) Task.Output = McLibFix(Version)) With {.ProgressWeight = 1},
-            New LoaderDownload("下载支持库文件", New List(Of NetFile)) With {.ProgressWeight = 15}
-        }
-        '构造加载器
-        Loaders.Add(New LoaderCombo(Of String)("下载支持库文件（主加载器）", LoadersLib) With {.Block = False, .Show = False, .ProgressWeight = 16})
+        If ShouldIgnoreFileCheck(Version) Then
+            Log("[Download] 已跳过所有 Libraries 检查")
+        Else
+            Dim LoadersLib As New List(Of LoaderBase) From {
+                New LoaderTask(Of String, List(Of NetFile))("分析缺失支持库文件", Sub(Task As LoaderTask(Of String, List(Of NetFile))) Task.Output = McLibFix(Version)) With {.ProgressWeight = 1},
+                New LoaderDownload("下载支持库文件", New List(Of NetFile)) With {.ProgressWeight = 15}
+}
+            '构造加载器
+            Loaders.Add(New LoaderCombo(Of String)("下载支持库文件（主加载器）", LoadersLib) With {.Block = False, .Show = False, .ProgressWeight = 16})
+        End If
 #End Region
 
 #Region "下载资源文件"
@@ -201,8 +205,27 @@
         Try
             Dim Versions As JArray = Json("versions")
             If Versions.Count < 200 Then Throw New Exception("获取到的版本列表长度不足（" & Json.ToString & "）")
-            '添加 PCL 特供项
-            If File.Exists(PathTemp & "Cache\download.json") Then Versions.Merge(GetJson(ReadFile(PathTemp & "Cache\download.json")))
+            '添加 UVMC 项
+            Dim CacheFilePath As String = PathTemp & "Cache\uvmc-download.json"
+            If Not File.Exists(CacheFilePath) Then
+                Try
+                    Dim UnlistedJson As JObject = NetGetCodeByRequestRetry("https://zkitefly.github.io/unlisted-versions-of-minecraft/version_manifest.json", IsJson:=True)
+                    For Each versionuvmc As JObject In UnlistedJson("versions")
+                        If versionuvmc("type").ToString() = "pending" OrElse versionuvmc("type").ToString() = "release" Then
+                            versionuvmc("type") = "snapshot"
+                        End If
+                        If versionuvmc("id").ToString().StartsWithF("1.0.0-rc") OrElse versionuvmc("id").ToString.StartsWithF("b1.9-pre") AndAlso versionuvmc("type").ToString() = "snapshot" Then
+                            versionuvmc("type") = "old_beta"
+                        End If
+                    Next
+                    File.WriteAllText(CacheFilePath, UnlistedJson.ToString())
+                Catch ex As Exception
+                    Log("[Download] 未列出的版本官方源下载失败: " & ex.Message)
+                End Try
+            Else
+                Dim CachedJson As JObject = GetJson(ReadFile(CacheFilePath))
+                Versions.Merge(CachedJson("versions"))
+            End If
             '返回
             Loader.Output = New DlClientListResult With {.IsOfficial = True, .SourceName = "Mojang 官方源", .Value = Json}
             '解析更新提示（Release）
@@ -232,14 +255,37 @@
         Try
             Dim Versions As JArray = Json("versions")
             If Versions.Count < 200 Then Throw New Exception("获取到的版本列表长度不足（" & Json.ToString & "）")
-            '添加 PCL 特供项
-            If File.Exists(PathTemp & "Cache\download.json") Then Versions.Merge(GetJson(ReadFile(PathTemp & "Cache\download.json")))
+            '添加 UVMC 项
+            Dim CacheFilePath As String = PathTemp & "Cache\uvmc-download.json"
+            If Not File.Exists(CacheFilePath) Then
+                Try
+                    Dim UnlistedJson As JObject = NetGetCodeByRequestRetry("https://vip.123pan.cn/1821946486/unlisted-versions-of-minecraft/version_manifest.json", IsJson:=True)
+                    For Each versionuvmc As JObject In UnlistedJson("versions")
+                        If versionuvmc("type").ToString() = "pending" OrElse versionuvmc("type").ToString() = "release" Then
+                            versionuvmc("type") = "snapshot"
+                        End If
+                        If versionuvmc("id").ToString().StartsWithF("1.0.0-rc") OrElse versionuvmc("id").ToString.StartsWithF("b1.9-pre") AndAlso versionuvmc("type").ToString() = "snapshot" Then
+                            versionuvmc("type") = "old_beta"
+                        End If
+                    Next
+                    File.WriteAllText(CacheFilePath, UnlistedJson.ToString())
+                Catch ex As Exception
+                    Log("[Download] 未列出的版本镜像源下载失败: " & ex.Message)
+                End Try
+            Else
+                Dim CachedJson As JObject = GetJson(ReadFile(CacheFilePath))
+                Versions.Merge(CachedJson("versions"))
+            End If
             '检查是否有要求的版本（#5195）
             If Not String.IsNullOrEmpty(Loader.Input) Then
                 Dim Id = Loader.Input
-                If Not DlClientListLoader.Output.Value("versions").Any(Function(v) v("id") = Id) Then
-                    Throw New Exception("BMCLAPI 源未包含目标版本 " & Id)
-                End If
+                Try
+                    If Not DlClientListLoader.Output.Value("versions").Any(Function(v) v("id") = Id) Then
+                        Throw New Exception("BMCLAPI 源未包含目标版本 " & Id)
+                    End If
+                Catch ex As Exception
+                    Log("检查 BMCLAPI 包含版本失败: " & ex.ToString())
+                End Try
             End If
             '返回
             Loader.Output = New DlClientListResult With {.IsOfficial = False, .SourceName = "BMCLAPI", .Value = Json}
@@ -503,13 +549,21 @@
 #Region "DlForgeVersion | Forge 版本列表"
 
     Public MustInherit Class DlForgelikeEntry
-        Public IsNeoForge As Boolean
+        ''' <summary>
+        ''' Forgelike 种类。Forge、NeoForge、Cleanroom。
+        ''' </summary>
+        Public ForgeType As ForgelikeType
+        Public Enum ForgelikeType
+            Forge
+            NeoForge
+            Cleanroom
+        End Enum
         ''' <summary>
         ''' 加载器名称。Forge 或 NeoForge。
         ''' </summary>
         Public ReadOnly Property LoaderName As String
             Get
-                Return If(IsNeoForge, "NeoForge", "Forge")
+                Return If(ForgeType = 1, "NeoForge", "Forge")
             End Get
         End Property
         ''' <summary>
@@ -517,19 +571,22 @@
         ''' </summary>
         Public ReadOnly Property FileExtension As String
             Get
-                If IsNeoForge Then
-                    Return "jar"
-                Else
+                If ForgeType = 0 Then
                     Return If(CType(Me, DlForgeVersionEntry).Category = "installer", "jar", "zip")
+                Else
+                    Return "jar"
                 End If
             End Get
         End Property
         ''' <summary>
         ''' Forge：MC 版本是否小于 1.13。
         ''' NeoForge：MC 版本是否为 1.20.1。
+        ''' Cleanroom：固定为 False。
         ''' </summary>
         Public ReadOnly Property IsLegacy As Boolean
             Get
+                'Cleanroom 始终为 False
+                If ForgeType = 2 Then Return False
                 '虽然很抽象，但确实可以这样判断
                 'Forge：1.13+ 的版本号首位都大于 20
                 'NeoForge：1.20.1 的版本号首位人为规定为 19 开头
@@ -541,12 +598,14 @@
         ''' 格式：Major.Minor.Build.Revision
         ''' Forge：如 “50.1.9.0”（最后一位固定为 0）、“14.22.1.2478”（Legacy）。
         ''' NeoForge：如 “20.4.30.0”（最后一位固定为 0）、“19.47.1.99”（Legacy：第一位固定为 19）。
+        ''' Cleanroom：如 “0.2.4.1”（Alpha：最后一位固定为 1）。
         ''' </summary>
         Public Version As Version
         ''' <summary>
         ''' 可对玩家显示的非格式化版本名。
         ''' Forge：如 “50.1.9”、“14.22.1.2478”（Legacy）。
         ''' NeoForge：如 “20.4.30-beta”、“47.1.99”（Legacy）。
+        ''' Cleanroom：如 “0.2.4-alpha”。
         ''' </summary>
         Public VersionName As String
         ''' <summary>
@@ -583,7 +642,7 @@
             If Version = "11.15.1.2318" OrElse Version = "11.15.1.1902" OrElse Version = "11.15.1.1890" Then Branch = "1.8.9"
             If Branch Is Nothing AndAlso Inherit = "1.7.10" AndAlso Version.Split(".")(3) >= 1300 Then Branch = "1.7.10"
             '为 DlForgelikeEntry 提供所有信息
-            IsNeoForge = False
+            ForgeType = 0
             VersionName = Version
             Me.Version = New Version(Version)
             Me.Inherit = Inherit
@@ -622,7 +681,7 @@
     Public Sub DlForgeVersionOfficialMain(Loader As LoaderTask(Of String, List(Of DlForgeVersionEntry)))
         Dim Result As String
         Try
-            Result = NetGetCodeByDownload("https://files.minecraftforge.net/maven/net/minecraftforge/forge/index_" &
+            Result = NetGetCodeByLoader("https://files.minecraftforge.net/maven/net/minecraftforge/forge/index_" &
                                           Loader.Input.Replace("-", "_") & '兼容 Forge 1.7.10-pre4，#4057
                                           ".html", UseBrowserUserAgent:=True)
         Catch ex As Exception
@@ -784,7 +843,7 @@
         End Property
 
         Public Sub New(ApiName As String)
-            IsNeoForge = True
+            ForgeType = 1
             Me.ApiName = ApiName
             IsBeta = ApiName.Contains("beta")
             If ApiName.Contains("1.20.1") Then '1.20.1-47.1.99
@@ -829,8 +888,8 @@
     Public DlNeoForgeListOfficialLoader As New LoaderTask(Of Integer, DlNeoForgeListResult)("DlNeoForgeList Official", AddressOf DlNeoForgeListOfficialMain)
     Private Sub DlNeoForgeListOfficialMain(Loader As LoaderTask(Of Integer, DlNeoForgeListResult))
         '获取版本列表 JSON
-        Dim ResultLatest As String = NetGetCodeByDownload("https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge", UseBrowserUserAgent:=True, IsJson:=True)
-        Dim ResultLegacy As String = NetGetCodeByDownload("https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/forge", UseBrowserUserAgent:=True, IsJson:=True)
+        Dim ResultLatest As String = NetGetCodeByLoader("https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge", UseBrowserUserAgent:=True, IsJson:=True)
+        Dim ResultLegacy As String = NetGetCodeByLoader("https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/forge", UseBrowserUserAgent:=True, IsJson:=True)
         If ResultLatest.Length < 100 OrElse ResultLegacy.Length < 100 Then Throw New Exception("获取到的版本列表长度不足（" & ResultLatest & "）")
         '解析
         Try
@@ -847,8 +906,8 @@
     Public DlNeoForgeListBmclapiLoader As New LoaderTask(Of Integer, DlNeoForgeListResult)("DlNeoForgeList Bmclapi", AddressOf DlNeoForgeListBmclapiMain)
     Public Sub DlNeoForgeListBmclapiMain(Loader As LoaderTask(Of Integer, DlNeoForgeListResult))
         '获取版本列表 JSON
-        Dim ResultLatest As String = NetGetCodeByDownload("https://bmclapi2.bangbang93.com/neoforge/meta/api/maven/details/releases/net/neoforged/neoforge", UseBrowserUserAgent:=True, IsJson:=True)
-        Dim ResultLegacy As String = NetGetCodeByDownload("https://bmclapi2.bangbang93.com/neoforge/meta/api/maven/details/releases/net/neoforged/forge", UseBrowserUserAgent:=True, IsJson:=True)
+        Dim ResultLatest As String = NetGetCodeByLoader("https://bmclapi2.bangbang93.com/neoforge/meta/api/maven/details/releases/net/neoforged/neoforge", UseBrowserUserAgent:=True, IsJson:=True)
+        Dim ResultLegacy As String = NetGetCodeByLoader("https://bmclapi2.bangbang93.com/neoforge/meta/api/maven/details/releases/net/neoforged/forge", UseBrowserUserAgent:=True, IsJson:=True)
         If ResultLatest.Length < 100 OrElse ResultLegacy.Length < 100 Then Throw New Exception("获取到的版本列表长度不足（" & ResultLatest & "）")
         '解析
         Try
@@ -865,6 +924,103 @@
         Dim Versions = VersionNames.
             Where(Function(name) name <> "47.1.82"). '这个版本虽然在版本列表中，但不能下载
             Select(Function(name) New DlNeoForgeListEntry(name)).ToList
+        If Not Versions.Any() Then Throw New Exception("没有可用版本")
+        Versions = Versions.OrderByDescending(Function(a) a.Version).ToList
+        Return Versions
+    End Function
+
+#End Region
+
+#Region "DlCleanroomList | Cleanroom 版本列表"
+
+    Public Structure DlCleanroomListResult
+        ''' <summary>
+        ''' 数据来源名称，如“Official”，“BMCLAPI”。
+        ''' </summary>
+        Public SourceName As String
+        ''' <summary>
+        ''' 是否为官方的实时数据。
+        ''' </summary>
+        Public IsOfficial As Boolean
+        ''' <summary>
+        ''' 所有版本的列表。已经按从新到老排序。
+        ''' </summary>
+        Public Value As List(Of DlCleanroomListEntry)
+    End Structure
+
+    Public Class DlCleanroomListEntry
+        Inherits DlForgelikeEntry
+        ''' <summary>
+        ''' 是否是 Beta 版。
+        ''' </summary>
+        Public IsBeta As Boolean
+        ''' <summary>
+        ''' API 使用的原始版本字符串，如 “0.2.4-alpha”。
+        ''' </summary>
+        Public ApiName As String
+        ''' <summary>
+        ''' 文件在官网的基础地址，不包含后缀。
+        ''' </summary>
+        Public ReadOnly Property UrlBase As String
+            Get
+                Return $"https://github.com/CleanroomMC/Cleanroom/releases/download/{ApiName}/cleanroom-{ApiName}"
+            End Get
+        End Property
+
+        Public Sub New(ApiName As String)
+            ForgeType = 1
+            Me.ApiName = ApiName
+            IsBeta = ApiName.Contains("alpha")
+            VersionName = ApiName
+            Version = New Version(ApiName.BeforeFirst("-"))
+            Inherit = "1.12.2"
+        End Sub
+    End Class
+
+    ''' <summary>
+    ''' Cleanroom 版本列表，主加载器。
+    ''' </summary>
+    Public DlCleanroomListLoader As New LoaderTask(Of Integer, DlCleanroomListResult)("DlCleanroomList Main", AddressOf DlCleanroomListMain)
+    Private Sub DlCleanroomListMain(Loader As LoaderTask(Of Integer, DlCleanroomListResult))
+        Select Case Setup.Get("ToolDownloadVersion")
+            Case 0
+                DlSourceLoader(Loader, New List(Of KeyValuePair(Of LoaderTask(Of Integer, DlCleanroomListResult), Integer)) From {
+                    New KeyValuePair(Of LoaderTask(Of Integer, DlCleanroomListResult), Integer)(DlCleanroomListOfficialLoader, 30)
+                }, Loader.IsForceRestarting)
+            Case 1
+                DlSourceLoader(Loader, New List(Of KeyValuePair(Of LoaderTask(Of Integer, DlCleanroomListResult), Integer)) From {
+                    New KeyValuePair(Of LoaderTask(Of Integer, DlCleanroomListResult), Integer)(DlCleanroomListOfficialLoader, 5)
+                }, Loader.IsForceRestarting)
+            Case Else
+                DlSourceLoader(Loader, New List(Of KeyValuePair(Of LoaderTask(Of Integer, DlCleanroomListResult), Integer)) From {
+                    New KeyValuePair(Of LoaderTask(Of Integer, DlCleanroomListResult), Integer)(DlCleanroomListOfficialLoader, 60)
+                }, Loader.IsForceRestarting)
+        End Select
+    End Sub
+
+    ''' <summary>
+    ''' Cleanroom 版本列表，官方源。
+    ''' </summary>
+    Public DlCleanroomListOfficialLoader As New LoaderTask(Of Integer, DlCleanroomListResult)("DlCleanroomList Official", AddressOf DlCleanroomListOfficialMain)
+    Private Sub DlCleanroomListOfficialMain(Loader As LoaderTask(Of Integer, DlCleanroomListResult))
+        '获取版本列表 JSON
+        Dim ResultLatest As String = NetGetCodeByRequestRetry("https://api.github.com/repos/CleanroomMC/Cleanroom/releases", UseBrowserUserAgent:=True)
+        If ResultLatest.Length < 100 Then Throw New Exception("获取到的版本列表长度不足（" & ResultLatest & "）")
+        '解析
+        Try
+            Loader.Output = New DlCleanroomListResult With {.IsOfficial = True, .SourceName = "Cleanroom 官方源",
+                .Value = GetCleanroomEntries(ResultLatest)}
+        Catch ex As Exception
+            Throw New Exception("Cleanroom 官方源版本列表解析失败（" & ResultLatest & "）", ex)
+        End Try
+    End Sub
+
+    Private Function GetCleanroomEntries(LatestJson As String) As List(Of DlCleanroomListEntry)
+        Dim Versions As New List(Of DlCleanroomListEntry)
+        Dim Json As JArray = JArray.Parse(LatestJson)
+        For Each Token As JObject In Json
+            Versions.Add(New DlCleanroomListEntry(Token("tag_name").ToString) With {.ForgeType = 2})
+        Next
         If Not Versions.Any() Then Throw New Exception("没有可用版本")
         Versions = Versions.OrderByDescending(Function(a) a.Version).ToList
         Return Versions
@@ -1173,42 +1329,30 @@
 
     ''' <summary>
     ''' 对可能涉及 Mod 镜像源的请求进行处理，返回字符串或 JObject。
-    ''' 调用 NetGetCodeByRequest。
+    ''' 调用 NetGetCodeByRequest，会进行重试。
     ''' </summary>
     Public Function DlModRequest(Url As String, Optional IsJson As Boolean = False) As Object
-        Dim McimUrl As String = DlSourceModGet(Url)
         Dim Urls As New List(Of KeyValuePair(Of String, Integer))
-        If McimUrl <> Url Then
-            Select Case Setup.Get("ToolDownloadMod")
-                'TODO: 在 MCIM 源稳定后回调
-                Case 0
-                    If ModeDebug Then
-                        Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 10))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 20))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 30))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 60))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 60))
-                    Else
-                        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 5))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 20))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 30))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 60))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 60))
-                    End If
-                Case 1
-                    Urls.Add(New KeyValuePair(Of String, Integer)(Url, 5))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(Url, 20))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 30))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(Url, 60))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 60))
-                Case Else
-                    Urls.Add(New KeyValuePair(Of String, Integer)(Url, 5))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(Url, 30))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(Url, 60))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 60))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 60))
-            End Select
-        End If
+        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 5))
+        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 20))
+        'Dim McimUrl As String = DlSourceModGet(Url)
+        'If McimUrl <> Url Then
+        '    Select Case Setup.Get("ToolDownloadMod")
+        '        Case 0
+        '            Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 5))
+        '            Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 10))
+        '            Urls.Add(New KeyValuePair(Of String, Integer)(Url, 15))
+        '        Case 1
+        '            Urls.Add(New KeyValuePair(Of String, Integer)(Url, 5))
+        '            Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 5))
+        '            Urls.Add(New KeyValuePair(Of String, Integer)(Url, 15))
+        '            Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 10))
+        '        Case Else
+        '            Urls.Add(New KeyValuePair(Of String, Integer)(Url, 5))
+        '            Urls.Add(New KeyValuePair(Of String, Integer)(Url, 15))
+        '            Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 10))
+        '    End Select
+        'End If
         Dim Exs As String = ""
         For Each Source In Urls
             Try
@@ -1222,42 +1366,30 @@
 
     ''' <summary>
     ''' 对可能涉及 Mod 镜像源的请求进行处理。
-    ''' 调用 NetRequest。
+    ''' 调用 NetRequest，会进行重试。
     ''' </summary>
     Public Function DlModRequest(Url As String, Method As String, Data As String, ContentType As String) As String
-        Dim McimUrl As String = DlSourceModGet(Url)
         Dim Urls As New List(Of KeyValuePair(Of String, Integer))
-        If McimUrl <> Url Then
-            Select Case Setup.Get("ToolDownloadMod")
-                'TODO: 在 MCIM 源稳定后回调
-                Case 0
-                    If ModeDebug Then
-                        Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 10))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 20))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 30))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 60))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 60))
-                    Else
-                        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 5))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 20))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 30))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 60))
-                        Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 60))
-                    End If
-                Case 1
-                    Urls.Add(New KeyValuePair(Of String, Integer)(Url, 5))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(Url, 20))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 30))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(Url, 60))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 60))
-                Case Else
-                    Urls.Add(New KeyValuePair(Of String, Integer)(Url, 5))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(Url, 30))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(Url, 60))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 60))
-                    Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 60))
-            End Select
-        End If
+        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 5))
+        Urls.Add(New KeyValuePair(Of String, Integer)(Url, 20))
+        'Dim McimUrl As String = DlSourceModGet(Url)
+        'If McimUrl <> Url Then
+        '   Select Case Setup.Get("ToolDownloadMod")
+        '       Case 0
+        '           Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 5))
+        '           Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 10))
+        '           Urls.Add(New KeyValuePair(Of String, Integer)(Url, 15))
+        '       Case 1
+        '           Urls.Add(New KeyValuePair(Of String, Integer)(Url, 5))
+        '           Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 5))
+        '           Urls.Add(New KeyValuePair(Of String, Integer)(Url, 15))
+        '           Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 10))
+        '       Case Else
+        '           Urls.Add(New KeyValuePair(Of String, Integer)(Url, 5))
+        '           Urls.Add(New KeyValuePair(Of String, Integer)(Url, 15))
+        '           Urls.Add(New KeyValuePair(Of String, Integer)(McimUrl, 10))
+        '   End Select
+        'End If
         Dim Exs As String = ""
         For Each Source In Urls
             Try
@@ -1285,28 +1417,46 @@
     End Function
 
     Public Function DlSourceLibraryGet(Original As String) As String()
-        Return {
-            Original.
-                Replace("https://piston-data.mojang.com", "https://bmclapi2.bangbang93.com/maven").
-                Replace("https://piston-meta.mojang.com", "https://bmclapi2.bangbang93.com/maven").
-                Replace("https://libraries.minecraft.net", "https://bmclapi2.bangbang93.com/maven"),
-            Original.
-                Replace("https://piston-data.mojang.com", "https://bmclapi2.bangbang93.com/libraries").
-                Replace("https://piston-meta.mojang.com", "https://bmclapi2.bangbang93.com/libraries").
-                Replace("https://libraries.minecraft.net", "https://bmclapi2.bangbang93.com/libraries"),
-            Original
-        }
+        If {"minecraftforge", "fabricmc", "neoforged"}.Any(Function(k) Original.Contains(k)) Then '不添加原版源
+            Return {
+                Original.
+                    Replace("https://piston-data.mojang.com", "https://bmclapi2.bangbang93.com/maven").
+                    Replace("https://piston-meta.mojang.com", "https://bmclapi2.bangbang93.com/maven").
+                    Replace("https://libraries.minecraft.net", "https://bmclapi2.bangbang93.com/maven").
+                    Replace("https://zkitefly.github.io/unlisted-versions-of-minecraft", "https://vip.123pan.cn/1821946486/unlisted-versions-of-minecraft"),
+                Original.
+                    Replace("https://piston-data.mojang.com", "https://bmclapi2.bangbang93.com/libraries").
+                    Replace("https://piston-meta.mojang.com", "https://bmclapi2.bangbang93.com/libraries").
+                    Replace("https://libraries.minecraft.net", "https://bmclapi2.bangbang93.com/libraries").
+                    Replace("https://zkitefly.github.io/unlisted-versions-of-minecraft", "https://vip.123pan.cn/1821946486/unlisted-versions-of-minecraft")
+            }
+        Else
+            Return {
+                Original.
+                    Replace("https://piston-data.mojang.com", "https://bmclapi2.bangbang93.com/maven").
+                    Replace("https://piston-meta.mojang.com", "https://bmclapi2.bangbang93.com/maven").
+                    Replace("https://libraries.minecraft.net", "https://bmclapi2.bangbang93.com/maven").
+                    Replace("https://zkitefly.github.io/unlisted-versions-of-minecraft", "https://vip.123pan.cn/1821946486/unlisted-versions-of-minecraft"),
+                Original.
+                    Replace("https://piston-data.mojang.com", "https://bmclapi2.bangbang93.com/libraries").
+                    Replace("https://piston-meta.mojang.com", "https://bmclapi2.bangbang93.com/libraries").
+                    Replace("https://libraries.minecraft.net", "https://bmclapi2.bangbang93.com/libraries").
+                    Replace("https://zkitefly.github.io/unlisted-versions-of-minecraft", "https://vip.123pan.cn/1821946486/unlisted-versions-of-minecraft"),
+                Original
+            }
+        End If
     End Function
 
     Public Function DlSourceModGet(Original As String) As String
-        Return Original.
-            Replace("api.modrinth.com", "mod.mcimirror.top/modrinth").
-            Replace("staging-api.modrinth.com", "mod.mcimirror.top/modrinth").
-            Replace("cdn.modrinth.com", "mod.mcimirror.top").
-            Replace("api.curseforge.com", "mod.mcimirror.top/curseforge").
-            Replace("edge.forgecdn.net", "mod.mcimirror.top").
-            Replace("mediafilez.forgecdn.net", "mod.mcimirror.top").
-            Replace("media.forgecdn.net", "mod.mcimirror.top")
+        Return Original
+        'Return Original.
+        '    Replace("api.modrinth.com", "mod.mcimirror.top/modrinth").
+        '    Replace("staging-api.modrinth.com", "mod.mcimirror.top/modrinth").
+        '    Replace("cdn.modrinth.com", "mod.mcimirror.top").
+        '    Replace("api.curseforge.com", "mod.mcimirror.top/curseforge").
+        '    Replace("edge.forgecdn.net", "mod.mcimirror.top").
+        '    Replace("mediafilez.forgecdn.net", "mod.mcimirror.top").
+        '    Replace("media.forgecdn.net", "mod.mcimirror.top")
     End Function
 
     Public Function DlSourceLauncherOrMetaGet(Original As String) As String()
@@ -1316,7 +1466,8 @@
                 Replace("https://piston-data.mojang.com", "https://bmclapi2.bangbang93.com").
                 Replace("https://piston-meta.mojang.com", "https://bmclapi2.bangbang93.com").
                 Replace("https://launcher.mojang.com", "https://bmclapi2.bangbang93.com").
-                Replace("https://launchermeta.mojang.com", "https://bmclapi2.bangbang93.com"),
+                Replace("https://launchermeta.mojang.com", "https://bmclapi2.bangbang93.com").
+                Replace("https://zkitefly.github.io/unlisted-versions-of-minecraft", "https://vip.123pan.cn/1821946486/unlisted-versions-of-minecraft"),
             Original
         }
     End Function

@@ -385,6 +385,8 @@ EndHint:
     '页面声明（出于单元测试考虑，初始化页面已转入 FormMain 中）
     Public FrmLaunchLeft As PageLaunchLeft
     Public FrmLaunchRight As PageLaunchRight
+    Public FrmLogLeft As PageLogLeft
+    Public FrmLogRight As PageLogRight
     Public FrmSelectLeft As PageSelectLeft
     Public FrmSelectRight As PageSelectRight
     Public FrmSpeedLeft As PageSpeedLeft
@@ -406,6 +408,7 @@ EndHint:
     Public FrmDownloadLiteLoader As PageDownloadLiteLoader
     Public FrmDownloadForge As PageDownloadForge
     Public FrmDownloadNeoForge As PageDownloadNeoForge
+    Public FrmDownloadCleanroom As PageDownloadCleanroom
     Public FrmDownloadFabric As PageDownloadFabric
     Public FrmDownloadQuilt As PageDownloadQuilt
     Public FrmDownloadMod As PageDownloadMod
@@ -441,13 +444,15 @@ EndHint:
     '版本设置页面声明
     Public FrmVersionLeft As PageVersionLeft
     Public FrmVersionOverall As PageVersionOverall
-    Public FrmVersionMod As PageVersionMod
+    Public FrmVersionMod As PageVersionCompResource
     Public FrmVersionModDisabled As PageVersionModDisabled
     Public FrmVersionScreenshot As PageVersionScreenshot
     Public FrmVersionWorld As PageVersionWorld
-    Public FrmVersionShader As PageVersionShader
-    Public FrmVersionResourcePack As PageVersionResourcePack
+    Public FrmVersionShader As PageVersionCompResource
+    Public FrmVersionResourcePack As PageVersionCompResource
     Public FrmVersionSetup As PageVersionSetup
+    Public FrmVersionInstall As PageVersionInstall
+    Public FrmVersionExport As PageVersionExport
 
     '资源信息分页声明
     Public FrmDownloadCompDetail As PageDownloadCompDetail
@@ -603,7 +608,7 @@ EndHint:
             Try
 
                 '解压内置文件
-                HelpTryExtract()
+                HelpExtract()
 
                 '遍历文件
                 Dim FileList As New List(Of String)
@@ -673,17 +678,14 @@ NextFile:
         End SyncLock
     End Sub
     ''' <summary>
-    ''' 尝试解压内置帮助文件。
+    ''' 解压内置帮助文件。
     ''' </summary>
-    Public Sub HelpTryExtract()
-        If Setup.Get("SystemHelpVersion") <> VersionCode OrElse Not File.Exists(PathTemp & "Help\启动器\备份设置.xaml") Then
-            DeleteDirectory(PathTemp & "Help")
-            Directory.CreateDirectory(PathTemp & "Help")
-            WriteFile(PathTemp & "Cache\Help.zip", GetResources("Help"))
-            ExtractFile(PathTemp & "Cache\Help.zip", PathTemp & "Help", Encoding.UTF8)
-            Setup.Set("SystemHelpVersion", VersionCode)
-            Log("[Help] 已解压内置帮助文件，目前状态：" & File.Exists(PathTemp & "Help\启动器\备份设置.xaml"), LogLevel.Debug)
-        End If
+    Public Sub HelpExtract()
+        DeleteDirectory(PathTemp & "Help")
+        Directory.CreateDirectory(PathTemp & "Help")
+        WriteFile(PathTemp & "Cache\Help.zip", GetResources("Help"))
+        ExtractFile(PathTemp & "Cache\Help.zip", PathTemp & "Help", Encoding.UTF8)
+        Log("[Help] 已解压内置帮助文件，目前状态：" & File.Exists(PathTemp & "Help\启动器\备份设置.xaml"), LogLevel.Debug)
     End Sub
     ''' <summary>
     ''' 对帮助文件约定的替换标记进行处理，如果遇到需要转义的字符会进行转义。
@@ -823,6 +825,54 @@ NextFile:
     Public Declare Function FindWindow Lib "user32" Alias "FindWindowA" (ClassName As String, WindowName As String) As IntPtr
     Public Declare Function SetForegroundWindow Lib "user32" (hWnd As IntPtr) As Integer
     Private Declare Function PostMessage Lib "user32" Alias "PostMessageA" (hWnd As IntPtr, msg As UInteger, wParam As Long, lParam As Long) As Boolean
+
+#End Region
+
+#Region "任务缓存"
+
+    Private IsTaskTempCleared As Boolean = False
+    Private IsTaskTempClearing As Boolean = False
+
+    ''' <summary>
+    ''' 尝试清理任务缓存文件夹。
+    ''' 在整次运行中只会实际清理一次。
+    ''' </summary>
+    Public Sub TryClearTaskTemp()
+        If Not IsTaskTempCleared Then
+            IsTaskTempCleared = True
+            IsTaskTempClearing = True
+            Try
+                Log("[System] 开始清理任务缓存文件夹")
+                DeleteDirectory($"{OsDrive}ProgramData\PCL\TaskTemp\")
+                DeleteDirectory($"{PathTemp}TaskTemp\")
+                Log("[System] 已清理任务缓存文件夹")
+            Catch ex As Exception
+                Log(ex, "清理任务缓存文件夹失败")
+            Finally
+                IsTaskTempClearing = False
+            End Try
+        ElseIf IsTaskTempClearing Then
+            '等待另一个清理步骤完成
+            Do While IsTaskTempClearing
+                Thread.Sleep(1)
+            Loop
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' 申请一个可用于任务缓存的临时文件夹，以 \ 结尾。
+    ''' 这些文件夹无需进行后续清理。
+    ''' </summary>
+    ''' <param name="RequireNonSpace">是否要求路径不包含空格。</param>
+    Public Function RequestTaskTempFolder(Optional RequireNonSpace As Boolean = False) As String
+        TryClearTaskTemp()
+        If RequireNonSpace Then
+            RequestTaskTempFolder = $"{OsDrive}ProgramData\PCL\Install\{GetUuid()}-{RandomInteger(0, 1000000)}\"
+        Else
+            RequestTaskTempFolder = $"{PathTemp}TaskTemp\{GetUuid()}-{RandomInteger(0, 1000000)}\"
+        End If
+        Directory.CreateDirectory(RequestTaskTempFolder)
+    End Function
 
 #End Region
 

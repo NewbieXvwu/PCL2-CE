@@ -6,17 +6,15 @@
         PanScroll = PanBack '不知道为啥不能在 XAML 设置
         PanLog.Visibility = Visibility.Collapsed
         '社区版提示
-        PanHint.Visibility = If(Convert.ToBoolean(ReadReg("UiLauncherCEHint", "True")), Visibility.Visible, Visibility.Collapsed)
+        PanHint.Visibility = If(Setup.Get("UiLauncherCEHint"), Visibility.Visible, Visibility.Collapsed)
         LabHint1.Text = "社区版包含未在官方主线版本发布的功能，仅用于尝鲜。请不要向官方仓库反馈社区版的问题哦！"
-        LabHint2.Text = $"若要永久隐藏此提示，请自行查阅代码中的相关部分。"
+        LabHint2.Text = $"若要永久隐藏此提示，请参阅 README。"
     End Sub
 
     '暂时关闭快照版提示
-#If Not BETA Then
     Private Sub BtnHintClose_Click(sender As Object, e As EventArgs) Handles BtnHintClose.Click
         AniDispose(PanHint, True)
     End Sub
-#End If
 
 #Region "自定义主页"
 
@@ -105,11 +103,11 @@ Download:
                         GoTo Download
                     Case 7
                         Log("[Page] 主页预设：主页市场")
-                        Url = "https://homepage-market.pages.dev/Custom.xaml"
+                        Url = "https://pclhomeplazaoss.lingyunawa.top:26994/d/Homepages/JingHai-Lingyun/Custom.xaml"
                         GoTo Download
                     Case 8
                         Log("[Page] 主页预设：更新日志")
-                        Url = "https://updatehomepage.pages.dev/UpdateHomepage.xaml"
+                        Url = "https://pclhomeplazaoss.lingyunawa.top:26994/d/Homepages/Joker2184/UpdateHomepage.xaml"
                         GoTo Download
                     Case 9
                         Log("[Page] 主页预设：PCL 新功能说明书")
@@ -121,7 +119,7 @@ Download:
                         GoTo Download
                     Case 11
                         Log("[Page] 主页预设：杂志主页")
-                        Url = "http://pclhomeplazaoss.lingyunawa.top:26994/d/Homepages/Ext1nguisher/Custom.xaml"
+                        Url = "https://pclhomeplazaoss.lingyunawa.top:26994/d/Homepages/Ext1nguisher/Custom.xaml"
                         GoTo Download
                 End Select
         End Select
@@ -230,7 +228,7 @@ Download:
                 PanCustom.Children.Add(GetObjectFromXML(Content))
             Catch ex As Exception
                 Log("[Page] 加载失败的自定义主页内容：" & vbCrLf & Content)
-                If MyMsgBox($"自定义主页内容编写有误，请根据下列错误信息进行检查：{vbCrLf}{ex.Message}", "加载自定义主页失败", "重试", "取消") = 1 Then
+                If MyMsgBox($"自定义主页内容编写有误，请根据下列错误信息进行检查：{vbCrLf}{GetExceptionSummary(ex)}", "加载自定义主页失败", "重试", "取消") = 1 Then
                     GoTo Refresh '防止 SyncLock 死锁
                 End If
             End Try

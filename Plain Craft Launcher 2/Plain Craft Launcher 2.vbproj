@@ -1,15 +1,13 @@
 ﻿<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\packages\Costura.Fody.6.0.0\build\Costura.Fody.props" Condition="Exists('..\packages\Costura.Fody.6.0.0\build\Costura.Fody.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{4499F2D2-18EF-4238-B1F0-7BD547AFF925}</ProjectGuid>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{F184B08F-C81C-45F6-A57F-5ABD9991F28F}</ProjectTypeGuids>
     <OutputType>WinExe</OutputType>
     <RootNamespace>PCL</RootNamespace>
     <AssemblyName>Plain Craft Launcher 2</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
     <MyType>Custom</MyType>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <TargetFrameworkProfile>
@@ -32,7 +30,7 @@
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
@@ -48,7 +46,7 @@
     <WarningLevel>1</WarningLevel>
     <RunCodeAnalysis>false</RunCodeAnalysis>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
@@ -83,7 +81,7 @@
     <ApplicationIcon>Images\icon.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
-    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup>
     <ManifestCertificateThumbprint>CE7A815CD81401B559C8649A3EEA43B75ECB8FC5</ManifestCertificateThumbprint>
@@ -100,7 +98,7 @@
   <PropertyGroup>
     <SignManifests>false</SignManifests>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Snapshot|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)' == 'Snapshot'">
     <OutputPath>.\bin\</OutputPath>
     <DocumentationFile>Plain Craft Launcher 2.xml</DocumentationFile>
     <Optimize>true</Optimize>
@@ -111,7 +109,7 @@
     <DefineConstants>SNAPSHOT</DefineConstants>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'BETA|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)' == 'BETA'">
     <OutputPath>.\bin\</OutputPath>
     <DocumentationFile>Plain Craft Launcher 2.xml</DocumentationFile>
     <Optimize>true</Optimize>
@@ -129,7 +127,7 @@
     <AssemblyOriginatorKeyFile>
     </AssemblyOriginatorKeyFile>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'ReleaseUpdate|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)' == 'ReleaseUpdate'">
     <OutputPath>.\bin\</OutputPath>
     <DefineConstants>RELEASE,BY_UPDATE</DefineConstants>
     <DocumentationFile>Plain Craft Launcher 2.xml</DocumentationFile>
@@ -141,49 +139,8 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Costura, Version=6.0.0.0, Culture=neutral, PublicKeyToken=9919ef960d84173d, processorArchitecture=MSIL">
-      <HintPath>..\packages\Costura.Fody.6.0.0\lib\netstandard2.0\Costura.dll</HintPath>
-    </Reference>
-    <Reference Include="Imazen.WebP, Version=10.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Imazen.WebP.10.0.1\lib\net45\Imazen.WebP.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Win32.Registry, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Win32.Registry.5.0.0\lib\net461\Microsoft.Win32.Registry.dll</HintPath>
-    </Reference>
-    <Reference Include="NAudio, Version=2.2.1.0, Culture=neutral, PublicKeyToken=e279aa5131008a41, processorArchitecture=MSIL">
-      <HintPath>..\packages\NAudio.2.2.1\lib\net472\NAudio.dll</HintPath>
-    </Reference>
-    <Reference Include="NAudio.Asio, Version=2.2.1.0, Culture=neutral, PublicKeyToken=e279aa5131008a41, processorArchitecture=MSIL">
-      <HintPath>..\packages\NAudio.Asio.2.2.1\lib\netstandard2.0\NAudio.Asio.dll</HintPath>
-    </Reference>
-    <Reference Include="NAudio.Core, Version=2.2.1.0, Culture=neutral, PublicKeyToken=e279aa5131008a41, processorArchitecture=MSIL">
-      <HintPath>..\packages\NAudio.Core.2.2.1\lib\netstandard2.0\NAudio.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="NAudio.Midi, Version=2.2.1.0, Culture=neutral, PublicKeyToken=e279aa5131008a41, processorArchitecture=MSIL">
-      <HintPath>..\packages\NAudio.Midi.2.2.1\lib\netstandard2.0\NAudio.Midi.dll</HintPath>
-    </Reference>
-    <Reference Include="NAudio.Wasapi, Version=2.2.1.0, Culture=neutral, PublicKeyToken=e279aa5131008a41, processorArchitecture=MSIL">
-      <HintPath>..\packages\NAudio.Wasapi.2.2.1\lib\netstandard2.0\NAudio.Wasapi.dll</HintPath>
-    </Reference>
-    <Reference Include="NAudio.WinForms, Version=2.2.1.0, Culture=neutral, PublicKeyToken=e279aa5131008a41, processorArchitecture=MSIL">
-      <HintPath>..\packages\NAudio.WinForms.2.2.1\lib\net472\NAudio.WinForms.dll</HintPath>
-    </Reference>
-    <Reference Include="NAudio.WinMM, Version=2.2.1.0, Culture=neutral, PublicKeyToken=e279aa5131008a41, processorArchitecture=MSIL">
-      <HintPath>..\packages\NAudio.WinMM.2.2.1\lib\netstandard2.0\NAudio.WinMM.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Ookii.Dialogs.Wpf, Version=5.0.0.0, Culture=neutral, PublicKeyToken=66aa232afad40158, processorArchitecture=MSIL">
-      <HintPath>..\packages\Ookii.Dialogs.Wpf.5.0.1\lib\net462\Ookii.Dialogs.Wpf.dll</HintPath>
-    </Reference>
-    <Reference Include="Open.Nat, Version=1.0.0.0, Culture=neutral, PublicKeyToken=f22a6a4582336c76, processorArchitecture=MSIL">
-      <HintPath>..\packages\Open.NAT.2.1.0.0\lib\net45\Open.Nat.dll</HintPath>
-    </Reference>
-    <Reference Include="STUN, Version=0.5.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\STUN.0.5.0\lib\net45\STUN.dll</HintPath>
-    </Reference>
     <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
     <Reference Include="System.Design" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.IO.Compression" />
@@ -192,12 +149,6 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Security" />
-    <Reference Include="System.Security.AccessControl, Version=6.0.0.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.AccessControl.6.0.1\lib\net461\System.Security.AccessControl.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Security.Principal.Windows, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.Principal.Windows.5.0.0\lib\net461\System.Security.Principal.Windows.dll</HintPath>
-    </Reference>
     <Reference Include="System.ServiceModel" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
@@ -220,6 +171,9 @@
     <Compile Include="Controls\MyComboBox.vb" />
     <Compile Include="Controls\MyComboBoxItem.vb" />
     <Compile Include="Controls\MyCard.vb" />
+    <Compile Include="Controls\MyExtraTextButton.xaml.vb">
+      <DependentUpon>MyExtraTextButton.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Controls\MyImage.vb" />
     <Compile Include="Controls\MyPageRight.vb" />
     <Compile Include="Controls\MyPageLeft.vb" />
@@ -228,10 +182,10 @@
     </Compile>
     <Compile Include="Modules\Minecraft\ModComp.vb" />
     <Compile Include="Modules\Minecraft\ModJava.vb" />
-    <Compile Include="Modules\Minecraft\ModMod.vb" />
+    <Compile Include="Modules\Minecraft\ModLocalComp.vb" />
     <Compile Include="Modules\Minecraft\ModModpack.vb" />
-    <Compile Include="Modules\Minecraft\MyLocalModItem.xaml.vb">
-      <DependentUpon>MyLocalModItem.xaml</DependentUpon>
+    <Compile Include="Modules\Minecraft\MyLocalCompItem.xaml.vb">
+      <DependentUpon>MyLocalCompItem.xaml</DependentUpon>
     </Compile>
     <Compile Include="Modules\ModEvent.vb" />
     <Compile Include="Controls\MyExtraButton.xaml.vb">
@@ -270,6 +224,9 @@
     <Compile Include="Pages\PageDownload\ModDownloadLib.vb" />
     <Compile Include="Modules\Minecraft\MyCompItem.xaml.vb">
       <DependentUpon>MyCompItem.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Pages\PageDownload\PageDownloadCleanroom.xaml.vb">
+      <DependentUpon>PageDownloadCleanroom.xaml</DependentUpon>
     </Compile>
     <Compile Include="Pages\PageDownload\PageDownloadResourcePack.xaml.vb">
       <DependentUpon>PageDownloadResourcePack.xaml</DependentUpon>
@@ -331,6 +288,9 @@
     <Compile Include="Pages\PageLink\PageLinkLobby.xaml.vb">
       <DependentUpon>PageLinkLobby.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Pages\PageLogLeft.xaml.vb">
+      <DependentUpon>PageLogLeft.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Pages\PageOther\PageOtherVote.xaml.vb">
       <DependentUpon>PageOtherVote.xaml</DependentUpon>
     </Compile>
@@ -343,20 +303,23 @@
     <Compile Include="Pages\PageOther\PageOtherFeedback.xaml.vb">
       <DependentUpon>PageOtherFeedback.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Pages\PageLogRight.xaml.vb">
+      <DependentUpon>PageLogRight.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Pages\PageVersion\PageVersionInstall.xaml.vb">
+      <DependentUpon>PageVersionInstall.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Pages\PageVersion\PageVersionExport.xaml.vb">
+      <DependentUpon>PageVersionExport.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Pages\PageVersion\PageVersionLeft.xaml.vb">
       <DependentUpon>PageVersionLeft.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Pages\PageVersion\PageVersionMod.xaml.vb">
-      <DependentUpon>PageVersionMod.xaml</DependentUpon>
+    <Compile Include="Pages\PageVersion\PageVersionCompResource.xaml.vb">
+      <DependentUpon>PageVersionCompResource.xaml</DependentUpon>
     </Compile>
     <Compile Include="Pages\PageVersion\PageVersionModDisabled.xaml.vb">
       <DependentUpon>PageVersionModDisabled.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Pages\PageVersion\PageVersionShader.xaml.vb">
-      <DependentUpon>PageVersionShader.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Pages\PageVersion\PageVersionResourcePack.xaml.vb">
-      <DependentUpon>PageVersionResourcePack.xaml</DependentUpon>
     </Compile>
     <Compile Include="Pages\PageVersion\PageVersionWorld.xaml.vb">
       <DependentUpon>PageVersionWorld.xaml</DependentUpon>
@@ -447,6 +410,10 @@
     <Compile Include="Pages\PageSpeedRight.xaml.vb">
       <DependentUpon>PageSpeedRight.xaml</DependentUpon>
     </Compile>
+    <Page Include="Controls\MyExtraTextButton.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Controls\MyExtraButton.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -544,11 +511,15 @@
       <DependentUpon>FormMain.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="Modules\Minecraft\MyLocalModItem.xaml">
+    <Page Include="Modules\Minecraft\MyLocalCompItem.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Modules\Minecraft\MyCompItem.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Pages\PageDownload\PageDownloadCleanroom.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -617,7 +588,6 @@
       <SubType>Designer</SubType>
     </Page>
     <None Include="app.manifest" />
-    <None Include="packages.config" />
     <None Include="Resources\Custom.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -638,6 +608,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Pages\PageLogLeft.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Pages\PageOther\PageOtherVote.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -650,11 +624,11 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Pages\PageVersion\PageVersionShader.xaml">
+    <Page Include="Pages\PageLogRight.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Pages\PageVersion\PageVersionResourcePack.xaml">
+    <Page Include="Pages\PageVersion\PageVersionInstall.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -669,6 +643,10 @@
     <Page Include="Pages\PageOther\PageOtherFeedback.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Pages\PageVersion\PageVersionExport.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Resources\Language\en_US.xaml">
       <SubType>Designer</SubType>
@@ -774,7 +752,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Pages\PageVersion\PageVersionMod.xaml">
+    <Page Include="Pages\PageVersion\PageVersionCompResource.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -846,13 +824,13 @@
       <LastGenOutput>Settings.Designer.vb</LastGenOutput>
     </None>
   </ItemGroup>
-  <ItemGroup>
+  <!--<ItemGroup>
     <None Include="App.config" />
-  </ItemGroup>
+  </ItemGroup>-->
   <ItemGroup>
-    <BootstrapperPackage Include=".NETFramework,Version=v4.5.2">
+    <BootstrapperPackage Include=".NETFramework,Version=v4.8.1">
       <Visible>False</Visible>
-      <ProductName>Microsoft .NET Framework 4.5.2 %28x86 和 x64%29</ProductName>
+      <ProductName>Microsoft .NET Framework 4.8.1 %28x86 和 x64%29</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
     <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
@@ -866,7 +844,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\Font.ttf" />
-    <None Include="Resources\Help.zip" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\Heads\LTCat.jpg" />
@@ -955,6 +932,7 @@
     <Resource Include="Images\Heads\Logo.png" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\Help.zip" />
     <None Include="Resources\transformer.jar" />
   </ItemGroup>
   <ItemGroup>
@@ -1017,15 +995,62 @@
   <ItemGroup>
     <None Include="Resources\libwebp64.dll" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Costura.Fody">
+      <Version>6.0.0</Version>
+      <IncludeAssets>runtime; compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Fody">
+      <Version>6.9.1</Version>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Imazen.WebP">
+      <Version>10.0.1</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Windows.SDK.Contracts">
+      <Version>10.0.19041.2</Version>
+    </PackageReference>
+    <PackageReference Include="IPNetwork2">
+      <Version>3.0.667</Version>
+    </PackageReference>
+    <PackageReference Include="Makaretu.Nat">
+      <Version>0.2.0</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Win32.Registry">
+      <Version>5.0.0</Version>
+    </PackageReference>
+    <PackageReference Include="NAudio">
+      <Version>2.2.1</Version>
+    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json">
+      <Version>13.0.3</Version>
+    </PackageReference>
+    <PackageReference Include="Ookii.Dialogs.Wpf">
+      <Version>5.0.1</Version>
+    </PackageReference>
+    <PackageReference Include="Open.NAT">
+      <Version>2.1.0</Version>
+    </PackageReference>
+    <PackageReference Include="STUN">
+      <Version>0.5.0</Version>
+    </PackageReference>
+    <PackageReference Include="System.Security.AccessControl">
+      <Version>6.0.1</Version>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Blocks\Cleanroom.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Heads\PCL-Community.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Heads\Logo-CE.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\Heads\Pysio.jpg" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>这台计算机上缺少此项目引用的 NuGet 程序包。使用“NuGet 程序包还原”可下载这些程序包。有关更多信息，请参见 http://go.microsoft.com/fwlink/?LinkID=322105。缺少的文件是 {0}。</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Costura.Fody.6.0.0\build\Costura.Fody.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Costura.Fody.6.0.0\build\Costura.Fody.props'))" />
-    <Error Condition="!Exists('..\packages\Costura.Fody.6.0.0\build\Costura.Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Costura.Fody.6.0.0\build\Costura.Fody.targets'))" />
-    <Error Condition="!Exists('..\packages\Fody.6.9.1\build\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Fody.6.9.1\build\Fody.targets'))" />
-  </Target>
-  <Import Project="..\packages\Costura.Fody.6.0.0\build\Costura.Fody.targets" Condition="Exists('..\packages\Costura.Fody.6.0.0\build\Costura.Fody.targets')" />
-  <Import Project="..\packages\Fody.6.9.1\build\Fody.targets" Condition="Exists('..\packages\Fody.6.9.1\build\Fody.targets')" />
 </Project>

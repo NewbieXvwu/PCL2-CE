@@ -75,8 +75,8 @@ Public Class Application
             Dim ShouldWaitForExit As Boolean = e.Args.Length > 0 AndAlso e.Args(0) = "--wait" '要求等待已有的 PCL 退出
             Dim WaitRetryCount As Integer = 0
 WaitRetry:
-            Dim WindowHwnd As IntPtr = FindWindow(Nothing, "Plain Craft Launcher　")
-            If WindowHwnd = IntPtr.Zero Then FindWindow(Nothing, "Plain Craft Launcher 2　")
+            Dim WindowHwnd As IntPtr = FindWindow(Nothing, "Plain Craft Launcher Community Edition ")
+            If WindowHwnd = IntPtr.Zero Then FindWindow(Nothing, "Plain Craft Launcher 2 Community Edition ")
             If WindowHwnd <> IntPtr.Zero Then
                 If ShouldWaitForExit AndAlso WaitRetryCount < 20 Then '至多等待 10 秒
                     WaitRetryCount += 1
@@ -105,9 +105,10 @@ WaitRetry:
             '日志初始化
             LogStart()
             '添加日志
-            Log($"[Start] 程序版本：{VersionDisplayName} ({VersionCode}{If(CommitHash = "", "", $"，#{CommitHash}")})")
-            Log($"[Start] 识别码：{UniqueAddress}{If(ThemeCheckOne(9), "，已解锁反馈主题", "")}")
+            Log($"[Start] 程序版本：{VersionBaseName} ({VersionBranchName}, {VersionCode}{If(CommitHash = "", "", $"，#{CommitHash}")})")
+            Log($"[Start] 识别码：{UniqueAddress}")
             Log($"[Start] 程序路径：{PathWithName}")
+            Log($"[Start] 系统版本：{Environment.OSVersion.Version}, 架构：{Runtime.InteropServices.RuntimeInformation.OSArchitecture}")
             Log($"[Start] 系统编码：{Encoding.Default.HeaderName} ({Encoding.Default.CodePage}, GBK={IsGBKEncoding})")
             Log($"[Start] 管理员权限：{IsAdmin()}")
             '检测异常环境
@@ -123,8 +124,9 @@ WaitRetry:
             Setup.Load("ToolDownloadThread")
             Setup.Load("ToolDownloadCert")
             '释放资源
-            SetDllDirectory(PathPure.TrimEnd("\"))
-            WriteFile(PathPure & "libwebp.dll", GetResources("libwebp64"))
+            Directory.CreateDirectory(PathPure & "CE")
+            SetDllDirectory(PathPure & "CE")
+            WriteFile(PathPure & "CE\" & "libwebp.dll", GetResources("libwebp64"))
             '网络配置初始化
             ServicePointManager.Expect100Continue = True
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 Or SecurityProtocolType.Tls Or SecurityProtocolType.Tls11 Or SecurityProtocolType.Tls12
@@ -170,8 +172,8 @@ WaitRetry:
            ExceptionString.Contains("MS.Internal.AppModel.ITaskbarList.HrInit") OrElse
            ExceptionString.Contains(".NET Framework") OrElse ' “自动错误判断” 的结果分析
            ExceptionString.Contains("未能加载文件或程序集") Then
-            OpenWebsite("https://dotnet.microsoft.com/zh-cn/download/dotnet-framework/thank-you/net462-offline-installer")
-            MsgBox("你的 .NET Framework 版本过低或损坏，请下载并重新安装 .NET Framework 4.8！", MsgBoxStyle.Information, "运行环境错误")
+            OpenWebsite("https://dotnet.microsoft.com/zh-cn/download/dotnet-framework/thank-you/net481-offline-installer")
+            MsgBox("你的 .NET Framework 版本过低或损坏，请下载并重新安装 .NET Framework 4.8.1！", MsgBoxStyle.Information, "运行环境错误")
             FormMain.EndProgramForce(Result.Cancel)
         Else
             FeedbackInfo()
